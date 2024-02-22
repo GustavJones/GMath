@@ -103,6 +103,43 @@ Matrix Matrix::Inverse() {
   return *this;
 }
 
+double Matrix::Determinant() {
+  if (Rows() != Columns()) {
+    throw std::invalid_argument("Matrix not square");
+  }
+
+  double factor;
+  double subtract;
+
+  for (int columnIndex = 0; columnIndex < Columns(); columnIndex++) {
+    for (int rowIndex = 0; rowIndex < Rows(); rowIndex++) {
+      if (rowIndex <= columnIndex) {
+        continue;
+      }
+
+      factor = 1 / (*this)[columnIndex][columnIndex] *
+               (*this)[rowIndex][columnIndex];
+      subtract = (*this)[columnIndex][columnIndex] * factor * -1;
+
+      (*this)[rowIndex][columnIndex] =
+          (*this)[rowIndex][columnIndex] + subtract;
+
+      for (int i = columnIndex + 1; i < Columns(); i++) {
+        (*this)[rowIndex][i] =
+            (*this)[rowIndex][i] - (*this)[columnIndex][i] * factor;
+      }
+    }
+  }
+
+  double output = 1;
+
+  for (int i = 0; i < Rows(); i++) {
+    output *= (*this)[i][i];
+  }
+
+  return output;
+}
+
 Matrix Matrix::Round() {
   for (int i = 0; i < Rows(); i++) {
     for (int j = 0; j < Columns(); j++) {

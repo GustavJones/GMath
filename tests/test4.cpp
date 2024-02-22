@@ -13,6 +13,11 @@ int main(int argc, char *argv[]) {
   test2[2] = {4, 5, 2, 3};
   test2[3] = {5, 2, 1, 9};
 
+  std::cout << test2.Determinant() << '\n';
+  std::cout << test.Determinant() << '\n';
+
+  std::cout << "\n\n\n\n\n\n";
+
   std::cout << "Input" << '\n';
 
   test2.Print();

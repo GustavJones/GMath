@@ -13,6 +13,7 @@ public:
 
   Matrix Identity();
   Matrix Inverse();
+  double Determinant();
   Matrix Round();
 
   Matrix operator*(Matrix multiply_matrix);
