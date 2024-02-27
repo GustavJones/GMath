@@ -23,7 +23,7 @@ Fraction::Fraction(double value) {
 }
 Fraction::Fraction() : numerator(0), denominator(0) {}
 
-Fraction::operator double() const { return numerator / denominator; }
+Fraction::operator double() const { return ((double)numerator / denominator); }
 
 void Fraction::Print() { std::cout << numerator << '/' << denominator << '\n'; }
 } // namespace GMath
