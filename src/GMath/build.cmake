@@ -1,7 +1,7 @@
 if(GMATH_BUILD_TESTS)
   message(STATUS "Building GMath tests")
   add_executable(test "src/GMath/test.cpp")
-  target_include_directories(test PRIVATE "include")
+  target_include_directories(test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 else()
   message(STATUS "Skipping GMath tests")
 endif()
