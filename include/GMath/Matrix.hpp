@@ -61,14 +61,19 @@ private:
   }
 
 public:
-  Matrix(const GMath::size_t _rows = 0, const GMath::size_t _columns = 0) {
+  Matrix() {
+    Reshape(MatrixShape(0, 0));
+  }
+
+  explicit Matrix(const GMath::size_t _rows, const GMath::size_t _columns) {
     Reshape(MatrixShape(_rows, _columns));
   };
 
-  Matrix(const MatrixShape &_shape) {
+  explicit Matrix(const MatrixShape &_shape) {
     Reshape(_shape);
   }
 
+  Matrix(const value_t &_value) : DynamicArray<DynamicArray<value_t>>({_value}) {}
   Matrix(const std::initializer_list<DynamicArray<value_t>> &_list) : DynamicArray<DynamicArray<value_t>>(_list) {}
 
   Matrix(Matrix &&) = default;

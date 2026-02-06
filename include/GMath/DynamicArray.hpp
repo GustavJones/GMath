@@ -11,6 +11,7 @@ private:
 public:
   DynamicArray() = default;
   explicit DynamicArray(const GMath::size_t _n) : m_values(_n) {};
+  DynamicArray(const T &_value) : m_values() { m_values.push_back(_value); }
   DynamicArray(const std::initializer_list<T> &_list) : m_values(_list.begin(), _list.end()) {};
   DynamicArray(DynamicArray &&) = default;
   DynamicArray(const DynamicArray &) = default;
