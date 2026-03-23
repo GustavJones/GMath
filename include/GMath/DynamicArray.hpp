@@ -24,6 +24,7 @@ public:
   void Clear() { m_values.clear(); };
   void PushBack(const T &_val) { m_values.push_back(_val); }
   void PushBack(T &&_val) { m_values.push_back(_val); }
+  void Erase(const GMath::size_t _index, const GMath::size_t _count = 1) { m_values.erase(m_values.begin() + _index, m_values.begin() + _index + _count); }
 
   [[nodiscard]]
   const T &operator[](const GMath::size_t _n) const {

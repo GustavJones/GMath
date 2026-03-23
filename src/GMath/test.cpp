@@ -45,5 +45,22 @@ int main(int argc, char *argv[]) {
   std::cout << 6 * m6;
   std::cout << 7 * m7;
 
+  std::cout << std::endl;
+  std::cout << "Slice: " << std::endl;
+  std::cout << m7.Slice(0, 0, 2, 2) << std::endl;
+
+  std::cout << "Transpose: " << std::endl;
+  std::cout << m3 << std::endl;
+  std::cout << m3.Transpose() << std::endl;
+
+  std::cout << "Determinant: " << std::endl;
+  GMath::Matrix3<GMath::double_t> determinant = {
+    {2, 4, 7},
+    {-4, -8, 3},
+    {-1, 3, 0}
+  };
+  std::cout << determinant << std::endl;
+  std::cout << determinant.Determinant() << std::endl;
+
   return 0;
 }

@@ -8,10 +8,10 @@
 
 namespace GMath {
 struct MatrixShape {
-  GMath::size_t Rows;
-  GMath::size_t Columns;
+  GMath::size_t Rows = 0;
+  GMath::size_t Columns = 0;
 
-  MatrixShape() : Rows(0), Columns(0) {};
+  MatrixShape() = default;
   MatrixShape(const GMath::size_t _rows, const GMath::size_t _columns)
       : Rows(_rows), Columns(_columns) {};
   MatrixShape(MatrixShape &&) = default;
@@ -121,6 +121,7 @@ public:
     Zero();
   }
 
+  [[nodiscard]]
   Matrix Round(value_t (*_roundFunc)(value_t _value) = std::round) {
     Matrix temp = *this;
     MatrixShape shape = Shape();
@@ -134,6 +135,7 @@ public:
     return temp;
   }
 
+  [[nodiscard]]
   MatrixShape Shape() const {
     if (!IsValid()) {
       throw std::runtime_error("Invalid matrix.");
@@ -147,6 +149,73 @@ public:
     }
 
     return shape;
+  }
+
+  Matrix RemoveRow(const GMath::size_t _index) const {
+    auto shape = Shape();
+    if (_index >= shape.Rows || _index < 0) {
+      throw std::runtime_error("Index out of bounds.");
+    }
+
+    Matrix<value_t> output = *this;
+    output.Erase(_index);
+
+    return output;
+  }
+
+  Matrix RemoveColumn(const GMath::size_t _index) const {
+    auto shape = Shape();
+    if (_index >= shape.Columns || _index < 0) {
+      throw std::runtime_error("Index out of bounds.");
+    }
+
+    Matrix<value_t> output = *this;
+
+    for (size_t __rowIndex = 0; __rowIndex < shape.Rows; __rowIndex++) {
+      output[__rowIndex].Erase(_index);
+    }
+
+    return output;
+  }
+
+  [[nodiscard]]
+  Matrix Slice(const GMath::size_t _rowIndex, const GMath::size_t _columnIndex, const GMath::size_t _rowCount, const GMath::size_t _columnCount) const {
+    auto shape = Shape();
+    if (_rowIndex + _rowCount > shape.Rows) {
+      throw std::runtime_error("Slice row count outside matrix size.");
+    }
+    else if (_columnIndex + _columnCount > shape.Columns) {
+      throw std::runtime_error("Slice column count outside matrix size.");
+    }
+    else if (_rowIndex < 0) {
+      throw std::runtime_error("Slice row index outside matrix size.");
+    }
+    else if (_columnIndex < 0) {
+      throw std::runtime_error("Slice column index outside matrix size.");
+    }
+
+    Matrix<value_t> output(_rowCount, _columnCount);
+
+    for (size_t __rIndex = 0; __rIndex < _rowCount; __rIndex++) {
+      for (size_t __cIndex = 0; __cIndex < _columnCount; __cIndex++) {
+        output[__rIndex][__cIndex] = operator[](_rowIndex + __rIndex)[_columnIndex + __cIndex];
+      }
+    }
+
+    return output;
+  }
+
+  Matrix Transpose() const {
+    auto shape = Shape();
+    Matrix<value_t> output(shape.Columns, shape.Rows);
+
+    for (size_t __rowIndex = 0; __rowIndex < shape.Rows; __rowIndex++) {
+      for (size_t __columnIndex = 0; __columnIndex < shape.Columns; __columnIndex++) {
+        output[__columnIndex][__rowIndex] = operator[](__rowIndex)[__columnIndex];
+      }
+    }
+
+    return output;
   }
 
   Matrix Inverse() const {
@@ -192,6 +261,35 @@ public:
         for (GMath::size_t __changeColumn = 0; __changeColumn < shape.Columns; __changeColumn++) {
           temp[__nextRow][__changeColumn] -= temp[__row][__changeColumn] * factor;
           output[__nextRow][__changeColumn] -= output[__row][__changeColumn] * factor;
+        }
+      }
+    }
+
+    return output;
+  }
+
+  value_t Determinant() const {
+    value_t output = 0;
+    auto shape = Shape();
+
+    if (shape.Rows != shape.Columns) {
+      throw std::runtime_error("Cannot calculate the determinant of a non-square matrix.");
+    }
+
+    if (shape.Rows == 2) {
+      output = operator[](0)[0] * operator[](1)[1] - operator[](0)[1] * operator[](1)[0];
+    }
+    else {
+      Matrix<value_t> temp = *this;
+      for (size_t __columnIndex = 0; __columnIndex < shape.Columns; __columnIndex++) {
+        auto factor = temp[0][__columnIndex];
+        factor *= temp.RemoveRow(0).RemoveColumn(__columnIndex).Determinant();
+
+        if (__columnIndex % 2 == 0) {
+          output += factor;
+        }
+        else {
+          output -= factor;
         }
       }
     }
@@ -295,6 +393,7 @@ public:
 };
 } // namespace GMath
 
+// Printing matrices
 template <typename value_t>
 std::ostream &operator<<(std::ostream &_stream, const GMath::Matrix<value_t> &_matrix) {
   GMath::MatrixShape shape = _matrix.Shape();
@@ -310,6 +409,7 @@ std::ostream &operator<<(std::ostream &_stream, const GMath::Matrix<value_t> &_m
   return _stream;
 }
 
+// Here to allow n * Matrix as well (Matrix * n is the only version that can be implemented in the class)
 template<typename scalar_t, typename value_t>
 GMath::Matrix<value_t> operator*(const scalar_t _value, GMath::Matrix<value_t> &_matrix) {
   return _matrix * _value;
