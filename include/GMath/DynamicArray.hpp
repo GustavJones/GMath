@@ -28,6 +28,8 @@ public:
   template<typename... Args>
   T &EmplaceBack(Args&& ... _args) { return m_values.emplace_back(_args...);}
 
+  void Insert(const GMath::size_t _index, const T &_value) { m_values.insert(m_values.begin() + _index, _value); }
+
   void Erase(const GMath::size_t _index, const GMath::size_t _count = 1) { m_values.erase(m_values.begin() + _index, m_values.begin() + _index + _count); }
 
   [[nodiscard]]

@@ -62,5 +62,9 @@ int main(int argc, char *argv[]) {
   std::cout << determinant << std::endl;
   std::cout << determinant.Determinant() << std::endl;
 
+  std::cout << m3.InsertColumn({1, 2, 3}, 0);
+  std::cout << std::endl;
+  std::cout << m3.InsertRow({1, 2, 3}, 0);
+
   return 0;
 }

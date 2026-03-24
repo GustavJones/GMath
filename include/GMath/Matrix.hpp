@@ -151,6 +151,19 @@ public:
     return shape;
   }
 
+  Matrix InsertRow(const DynamicArray<value_t> &_row, const GMath::size_t _index) {
+    auto shape = Shape();
+    if (_index >= shape.Rows || _index < 0) {
+      throw std::runtime_error("Index out of bounds.");
+    }
+
+    Matrix<value_t> output = *this;
+    output.Insert(_index, _row);
+    output[_index].Resize(shape.Columns);
+
+    return output;
+  }
+
   Matrix RemoveRow(const GMath::size_t _index) const {
     auto shape = Shape();
     if (_index >= shape.Rows || _index < 0) {
@@ -159,6 +172,41 @@ public:
 
     Matrix<value_t> output = *this;
     output.Erase(_index);
+
+    return output;
+  }
+
+  Matrix AppendRow(const DynamicArray<value_t> &_row) {
+    auto shape = Shape();
+
+    Matrix<value_t> output = *this;
+
+    if (shape.Rows > 0) {
+      output.InsertRow(_row, shape.Rows - 1);
+    }
+    else {
+      output.InsertRow(_row, 0);
+    }
+
+    return output;
+  }
+
+  // template<typename... Args>
+  // Matrix AppendRow(Args&& ... _args) {
+  //   return AppendRow(GMath::DynamicArray<value_t>(_args...));
+  // }
+
+  Matrix InsertColumn(const DynamicArray<value_t> &_column, const GMath::size_t _index) {
+    auto shape = Shape();
+    if (_index >= shape.Columns || _index < 0) {
+      throw std::runtime_error("Index out of bounds.");
+    }
+
+    Matrix<value_t> output = *this;
+
+    for (size_t __rowIndex = 0; __rowIndex < shape.Rows; __rowIndex++) {
+      output[__rowIndex].Insert(_index, _column[__rowIndex]);      
+    }
 
     return output;
   }
@@ -177,6 +225,26 @@ public:
 
     return output;
   }
+
+  Matrix AppendColumn(const DynamicArray<value_t> &_column) {
+    auto shape = Shape();
+
+    Matrix<value_t> output = *this;
+
+    if (shape.Columns > 0) {
+      output.InsertColumn(_column, shape.Columns - 1);
+    }
+    else {
+      output.InsertColumn(_column, 0);
+    }
+
+    return output;
+  }
+
+  // template<typename... Args>
+  // Matrix AppendColumn(Args&& ... _args) {
+  //   return AppendColumn(GMath::DynamicArray<value_t>(_args...));
+  // }
 
   [[nodiscard]]
   Matrix Slice(const GMath::size_t _rowIndex, const GMath::size_t _columnIndex, const GMath::size_t _rowCount, const GMath::size_t _columnCount) const {
