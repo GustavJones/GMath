@@ -63,6 +63,8 @@ private:
 public:
   Matrix() { Reshape(MatrixShape(0, 0)); }
 
+  Matrix(const GMath::DynamicArray<value_t> &_arr) : DynamicArray<DynamicArray<value_t>>({_arr}) {}
+
   explicit Matrix(const GMath::size_t _rows, const GMath::size_t _columns) {
     Reshape(MatrixShape(_rows, _columns));
   };
@@ -79,6 +81,14 @@ public:
   Matrix &operator=(Matrix &&) = default;
   Matrix &operator=(const Matrix &) = default;
   ~Matrix() = default;
+
+  bool IsColumnMatrix() const {
+    return Shape().Columns == 1;
+  }
+
+  bool IsRowMatrix() const {
+    return Shape().Rows == 1;
+  }
 
   void Identity() {
     MatrixShape shape = Shape();
@@ -149,20 +159,25 @@ public:
     return shape;
   }
 
+  [[nodiscard]]
   Matrix InsertRow(const DynamicArray<value_t> &_row,
                    const GMath::size_t _index) {
     auto shape = Shape();
-    if (_index >= shape.Rows || _index < 0) {
+    if (_index > shape.Rows || _index < 0) {
       throw std::runtime_error("Index out of bounds.");
     }
 
     Matrix<value_t> output = *this;
     output.Insert(_index, _row);
-    output[_index].Resize(shape.Columns);
+
+    if (!IsValid()) {
+      throw std::runtime_error("Invalid row inserted...");
+    }
 
     return output;
   }
 
+  [[nodiscard]]
   Matrix RemoveRow(const GMath::size_t _index) const {
     auto shape = Shape();
     if (_index >= shape.Rows || _index < 0) {
@@ -175,17 +190,13 @@ public:
     return output;
   }
 
+  [[nodiscard]]
   Matrix AppendRow(const DynamicArray<value_t> &_row) {
     auto shape = Shape();
 
     Matrix<value_t> output = *this;
 
-    if (shape.Rows > 0) {
-      output.InsertRow(_row, shape.Rows - 1);
-    } else {
-      output.InsertRow(_row, 0);
-    }
-
+    output = output.InsertRow(_row, shape.Rows);
     return output;
   }
 
@@ -194,14 +205,24 @@ public:
   //   return AppendRow(GMath::DynamicArray<value_t>(_args...));
   // }
 
-  Matrix InsertColumn(const DynamicArray<value_t> &_column,
-                      const GMath::size_t _index) {
+  [[nodiscard]]
+  Matrix InsertColumn(const DynamicArray<value_t> &_column, const GMath::size_t _index) {
     auto shape = Shape();
-    if (_index >= shape.Columns || _index < 0) {
+
+    if (_index > shape.Columns || _index < 0) {
       throw std::runtime_error("Index out of bounds.");
     }
 
     Matrix<value_t> output = *this;
+
+    if (shape.Rows == 0) {
+      output.Reshape({_column.Size(), 0});
+      shape.Rows = _column.Size();
+    }
+
+    if (_column.Size() != shape.Rows) {
+      throw std::runtime_error("Inserted invalid column...");
+    }
 
     for (size_t __rowIndex = 0; __rowIndex < shape.Rows; __rowIndex++) {
       output[__rowIndex].Insert(_index, _column[__rowIndex]);
@@ -210,6 +231,7 @@ public:
     return output;
   }
 
+  [[nodiscard]]
   Matrix RemoveColumn(const GMath::size_t _index) const {
     auto shape = Shape();
     if (_index >= shape.Columns || _index < 0) {
@@ -225,17 +247,13 @@ public:
     return output;
   }
 
+  [[nodiscard]]
   Matrix AppendColumn(const DynamicArray<value_t> &_column) {
     auto shape = Shape();
 
     Matrix<value_t> output = *this;
 
-    if (shape.Columns > 0) {
-      output.InsertColumn(_column, shape.Columns - 1);
-    } else {
-      output.InsertColumn(_column, 0);
-    }
-
+    output = output.InsertColumn(_column, shape.Columns);
     return output;
   }
 
@@ -476,21 +494,23 @@ std::ostream &operator<<(std::ostream &_stream,
                          const GMath::Matrix<value_t> &_matrix) {
   GMath::MatrixShape shape = _matrix.Shape();
 
-  for (GMath::size_t __i = 0; __i < shape.Rows; __i++) {
-    _stream << "| ";
-    for (GMath::size_t __j = 0; __j < shape.Columns; __j++) {
-      _stream << _matrix[__i][__j] << ' ';
-    }
-    _stream << '|' << std::endl;
+  if (shape.Rows == 0) {
+    _stream << "[]";
+    return _stream;
   }
+
+  _stream << "[" << std::endl;
+  for (GMath::size_t __i = 0; __i < shape.Rows; __i++) {
+    _stream << '\t' << _matrix[__i] << std::endl;
+  }
+  _stream << ']';
 
   return _stream;
 }
 
 // Here to allow n * Matrix as well (Matrix * n is the only version that can be
 // implemented in the class)
-template <typename scalar_t, typename value_t>
-GMath::Matrix<value_t> operator*(const scalar_t _value,
-                                 GMath::Matrix<value_t> &_matrix) {
+template <typename value_t>
+GMath::Matrix<value_t> operator*(const value_t _value, GMath::Matrix<value_t> &_matrix) {
   return _matrix * _value;
 }

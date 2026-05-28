@@ -2,6 +2,7 @@
 #include "GMath/Types.hpp"
 #include <initializer_list>
 #include <vector>
+#include <iostream>
 
 namespace GMath {
 template <typename T> class DynamicArray {
@@ -31,7 +32,12 @@ public:
   }
 
   void Insert(const GMath::size_t _index, const T &_value) {
-    m_values.insert(m_values.begin() + _index, _value);
+    if (_index == Size()) {
+      PushBack(_value);
+    }
+    else {
+      m_values.insert(m_values.begin() + _index, _value);
+    }
   }
 
   void Erase(const GMath::size_t _index, const GMath::size_t _count = 1) {
@@ -50,3 +56,20 @@ public:
   };
 };
 } // namespace GMath
+
+// Printing arrays 
+template <typename value_t>
+std::ostream &operator<<(std::ostream &_stream, const GMath::DynamicArray<value_t> &_array) {
+
+  _stream << "[ ";
+  for (GMath::size_t __i = 0; __i < _array.Size(); __i++) {
+    _stream << _array[__i];
+
+    if (__i != _array.Size() - 1) {
+      _stream << ", ";
+    }
+  }
+  _stream << " ]";
+
+  return _stream;
+}
