@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.15)
 project(GMath)
 enable_language(ASM_NASM)
 
+add_library(GMath INTERFACE)
+target_include_directories(GMath INTERFACE
+  "${CMAKE_CURRENT_SOURCE_DIR}/include"
+)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(GMATH_BUILD_TESTS "Build tests for GMath library" OFF)

@@ -42,8 +42,8 @@ int main(int argc, char *argv[]) {
     {0, 0, 1}
   };
 
-  std::cout << 6 * m6;
-  std::cout << 7 * m7;
+  std::cout << 6.0 * m6;
+  std::cout << 7.0 * m7;
 
   std::cout << std::endl;
   std::cout << "Slice: " << std::endl;
