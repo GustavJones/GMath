@@ -2,16 +2,21 @@
 #include "GMath/Matrix.hpp"
 
 namespace GMath {
+/*
+ * Subclass of GMath::Matrix with a constant shape of 3x3.
+ */
 template <typename value_t> class Matrix3 : public Matrix<value_t> {
 private:
+  /*
+   * Disabled Reshape() method for a 3x3 matrix.
+   */
   void Reshape(const MatrixShape &_shape) override {
     Matrix<value_t>::Reshape(_shape);
   };
 
 public:
   Matrix3() : Matrix<value_t>(3, 3) {};
-  Matrix3(const std::initializer_list<DynamicArray<value_t>> &_list)
-      : Matrix<value_t>(_list) {
+  Matrix3(const std::initializer_list<DynamicArray<value_t>> &_list) : Matrix<value_t>(_list) {
     auto shape = Matrix<value_t>::Shape();
     if (shape != MatrixShape(3, 3)) {
       throw std::runtime_error("Invalid matrix shape for Matrix3.");
