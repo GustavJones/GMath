@@ -47,13 +47,13 @@ public:
   /*
    * Move an object to the back of the array.
    */
-  void PushBack(T &&_val) { m_values.push_back(_val); }
+  void PushBack(T &&_val) { m_values.push_back(std::move(_val)); }
 
   /*
    * Create an object at the back of the array.
    */
   template <typename... Args> T &EmplaceBack(Args &&..._args) {
-    return m_values.emplace_back(_args...);
+    return m_values.emplace_back(std::move(_args...));
   }
 
   /*
