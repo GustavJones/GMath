@@ -2,6 +2,8 @@
 #include "GMath/DynamicArray.hpp"
 #include "GMath/Types.hpp"
 #include <cmath>
+#include <functional>
+#include <future>
 #include <iostream>
 #include <stdexcept>
 
@@ -513,14 +515,37 @@ public:
    */
   [[nodiscard]]
   Matrix operator*(const value_t _value) const {
+    static const bool THREADING_ENABLED = false;
+    static const GMath::size_t THREADING_LIMIT = 16;
+    static const GMath::size_t THREADING_COUNT = std::thread::hardware_concurrency() > 0 ? std::thread::hardware_concurrency() : 1;
+
     auto shape = Shape();
     Matrix<value_t> output(shape.Rows, shape.Columns);
 
-    for (GMath::size_t __row = 0; __row < shape.Rows; __row++) {
-      for (GMath::size_t __column = 0; __column < shape.Columns; __column++) {
-        output[__row][__column] = DynamicArray<DynamicArray<value_t>>::operator[](__row)[__column] * _value;
+    DynamicArray<std::future<void>> threads {THREADING_COUNT};
+    const auto batchFunc = [](const Matrix<value_t> &_source, Matrix<value_t> &_output, const MatrixShape &_shape, const GMath::size_t _rowStart, const GMath::size_t _rowEnd, const value_t _value) {
+      for (size_t __row = _rowStart; __row < _rowEnd; __row++) {
+        for (GMath::size_t __column = 0; __column < _shape.Columns; __column++) {
+          _output[__row][__column] = _source[__row][__column] * _value;
+        }
+      }
+    };
+
+    if (shape.Rows > THREADING_LIMIT && THREADING_ENABLED) {
+      const GMath::size_t batchSize { shape.Rows / threads.Size() + 1};
+      for (GMath::size_t __threadIndex = 0; __threadIndex < threads.Size(); __threadIndex++) {
+        const auto batchStart = batchSize * __threadIndex, batchEnd = (batchStart + batchSize) > shape.Rows ? shape.Rows : (batchStart + batchSize);
+        threads[__threadIndex] = std::async(std::launch::async, batchFunc, std::ref(*this), std::ref(output), std::ref(shape), batchStart, batchEnd, _value);
+      }
+
+      for (GMath::size_t __threadIndex = 0; __threadIndex < threads.Size(); __threadIndex++) {
+        threads[__threadIndex].get();
       }
     }
+    else {
+      batchFunc(*this, output, shape, 0, shape.Rows, _value);
+    }
+
 
     return output;
   }
@@ -530,6 +555,9 @@ public:
    */
   [[nodiscard]]
   Matrix operator*(const Matrix<value_t> &_matrix) const {
+    static const bool THREADING_ENABLED = false;
+    static const GMath::size_t THREADING_LIMIT = 16;
+    static const GMath::size_t THREADING_COUNT = std::thread::hardware_concurrency() > 0 ? std::thread::hardware_concurrency() : 1;
     auto thisShape = Shape();
     auto otherShape = _matrix.Shape();
 
@@ -539,13 +567,32 @@ public:
       throw std::runtime_error("Matrix shapes cannot be multiplied.");
     }
 
-    for (GMath::size_t __row = 0; __row < thisShape.Rows; __row++) {
-      for (GMath::size_t __column = 0; __column < otherShape.Columns; __column++) {
-        for (GMath::size_t __index = 0; __index < thisShape.Columns; __index++) {
-          output[__row][__column] += DynamicArray<DynamicArray<value_t>>::operator[](__row)[__index] * _matrix[__index][__column];
+    DynamicArray<std::future<void>> threads {THREADING_COUNT};
+    const auto batchFunc = [](const Matrix<value_t> &_matrix1, const Matrix<value_t> &_matrix2, Matrix<value_t> &_output, const MatrixShape &_matrix1Shape, const MatrixShape &_matrix2Shape, const GMath::size_t _rowStart, const GMath::size_t _rowEnd) {
+      for (GMath::size_t __row = _rowStart; __row < _rowEnd; __row++) {
+        for (GMath::size_t __column = 0; __column < _matrix2Shape.Columns; __column++) {
+          for (GMath::size_t __index = 0; __index < _matrix1Shape.Columns; __index++) {
+            _output[__row][__column] += _matrix1[__row][__index] * _matrix2[__index][__column];
+          }
         }
       }
+    };
+
+    if (thisShape.Rows > THREADING_LIMIT && THREADING_ENABLED) {
+      const GMath::size_t batchSize = { thisShape.Rows / threads.Size() + 1};
+      for (GMath::size_t __threadIndex = 0; __threadIndex < threads.Size(); __threadIndex++) {
+        const auto batchStart = batchSize * __threadIndex, batchEnd = (batchStart + batchSize) > thisShape.Rows ? thisShape.Rows : (batchStart + batchSize);
+        threads[__threadIndex] = std::async(std::launch::async, batchFunc, std::ref(*this), std::ref(_matrix), std::ref(output), std::ref(thisShape), std::ref(otherShape), batchStart, batchEnd);
+      }
+
+      for (GMath::size_t __threadIndex = 0; __threadIndex < threads.Size(); __threadIndex++) {
+        threads[__threadIndex].get();
+      }
     }
+    else {
+      batchFunc(*this, _matrix, output, thisShape, otherShape, 0, thisShape.Rows);
+    }
+
 
     return output;
   }
