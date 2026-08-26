@@ -29,6 +29,16 @@ public:
   [[nodiscard]]
   GMath::size_t Size() const { return m_values.size(); };
 
+	/*
+	 * Get data memory address.
+	 */
+	T *Data() { return m_values.data(); }
+
+	/*
+	 * Get data memory address.
+	 */
+	const T *Data() const { return m_values.data(); }
+
   /*
    * Set the amount of items in the array.
    */
