@@ -501,8 +501,7 @@ public:
     }
 
     for (GMath::size_t __row = 0; __row < thisShape.Rows; __row++) {
-      for (GMath::size_t __column = 0; __column < thisShape.Columns;
-           __column++) {
+      for (GMath::size_t __column = 0; __column < thisShape.Columns; __column++) {
         output[__row][__column] -= _matrix[__row][__column];
       }
     }
@@ -556,8 +555,8 @@ public:
   [[nodiscard]]
   Matrix operator*(const Matrix<value_t> &_matrix) const {
     static const bool THREADING_ENABLED = false;
-    static const GMath::size_t THREADING_LIMIT = 16;
     static const GMath::size_t THREADING_COUNT = std::thread::hardware_concurrency() > 0 ? std::thread::hardware_concurrency() : 1;
+    static const GMath::size_t THREADING_LIMIT = THREADING_COUNT * 2;
     auto thisShape = Shape();
     auto otherShape = _matrix.Shape();
 
@@ -569,10 +568,13 @@ public:
 
     DynamicArray<std::future<void>> threads {THREADING_COUNT};
     const auto batchFunc = [](const Matrix<value_t> &_matrix1, const Matrix<value_t> &_matrix2, Matrix<value_t> &_output, const MatrixShape &_matrix1Shape, const MatrixShape &_matrix2Shape, const GMath::size_t _rowStart, const GMath::size_t _rowEnd) {
+			const Matrix<value_t> transpose = _matrix2.Transpose();
+
       for (GMath::size_t __row = _rowStart; __row < _rowEnd; __row++) {
         for (GMath::size_t __column = 0; __column < _matrix2Shape.Columns; __column++) {
           for (GMath::size_t __index = 0; __index < _matrix1Shape.Columns; __index++) {
-            _output[__row][__column] += _matrix1[__row][__index] * _matrix2[__index][__column];
+            _output[__row][__column] += _matrix1[__row][__index] * transpose[__column][__index];
+            // _output[__row][__column] += _matrix1[__row][__index] * _matrix2[__index][__column];
           }
         }
       }
