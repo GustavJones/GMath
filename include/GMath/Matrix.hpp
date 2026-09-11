@@ -18,11 +18,6 @@ struct MatrixShape {
 
   MatrixShape() = default;
   MatrixShape(const GMath::size_t _rows, const GMath::size_t _columns) : Rows(_rows), Columns(_columns) {};
-  MatrixShape(MatrixShape &&) = default;
-  MatrixShape(const MatrixShape &) = default;
-  MatrixShape &operator=(MatrixShape &&) = default;
-  MatrixShape &operator=(const MatrixShape &) = default;
-  ~MatrixShape() = default;
 
   /*
    * Compare operator overload.
@@ -53,25 +48,96 @@ struct MatrixShape {
   }
 };
 
+template <typename value_t>
+class Matrix;
+
+/*
+ * A class for a Matrix row.
+ */
+template <typename value_t>
+class MatrixRow {
+private:
+	DynamicArray<value_t> m_columns;
+
+protected:
+	friend Matrix<value_t>;
+
+	/*
+	 * Resize the row.
+	 */
+	void Resize(const GMath::size_t _size) { m_columns.Resize(_size); }
+
+	/*
+	 * Insert a column into the row.
+	 */
+	void Insert(const GMath::size_t _index, const value_t _value) { m_columns.Insert(_index, _value); }
+
+
+	/*
+	 * Erase a column form the row.
+	 */
+	void Erase(const GMath::size_t _index, const GMath::size_t _count = 1) { m_columns.Erase(_index, _count); }
+
+public:
+	MatrixRow() = default;
+
+	MatrixRow(const DynamicArray<value_t> &_arr) : m_columns(_arr) {}
+	MatrixRow(DynamicArray<value_t> &&_arr) : m_columns(_arr) {}
+
+  explicit MatrixRow(const GMath::size_t _n) : m_columns(_n) {};
+  MatrixRow(const value_t &_value) { m_columns.PushBack(_value); }
+  MatrixRow(const std::initializer_list<value_t> &_list) : m_columns(_list) {};
+
+	MatrixRow(const MatrixRow &_row) = default;
+	MatrixRow(MatrixRow &&_row) = default;
+	MatrixRow &operator=(const MatrixRow &_row) = default;
+	MatrixRow &operator=(MatrixRow &&_row) = default;
+	~MatrixRow() = default;
+
+	/*
+	 * Get the size of the row.
+	 */
+	[[nodiscard]]
+	GMath::size_t Size() const { return m_columns.Size(); }
+
+	/*
+	 * Get the value of a column in the row.
+	 */
+	[[nodiscard]]
+	value_t &operator[](const GMath::size_t _column) { return m_columns[_column]; }
+
+	/*
+	 * Get the value of a column in the row.
+	 */
+	[[nodiscard]]
+	const value_t &operator[](const GMath::size_t _column) const { return m_columns[_column]; }
+
+	explicit operator const DynamicArray<value_t> &() const { return m_columns; }
+};
+
 /*
  * A class for a Matrix structure in C++.
  */
 template <typename value_t>
-class Matrix : private DynamicArray<DynamicArray<value_t>> {
+class Matrix {
 private:
+	DynamicArray<MatrixRow<value_t>> m_rows;
+
   /*
    * Check if the Matrix has a constant amount of columns in each row.
    * If false, the Matrix has a row that doesn't have the same amount of columns as the first row.
    */
-  bool IsValid() const noexcept {
+	[[deprecated("No longer needed.")]]
+	[[nodiscard]]
+  bool _IsValid() const noexcept {
     GMath::size_t columns = 0;
-    GMath::size_t rows = DynamicArray<DynamicArray<value_t>>::Size();
+    GMath::size_t rows = m_rows.Size();
 
     if (rows > 0) {
-      columns = DynamicArray<DynamicArray<value_t>>::operator[](0).Size();
+      columns = m_rows[0].Size();
 
-      for (GMath::size_t __row = 0; __row < rows; __row++) {
-        const DynamicArray<value_t> &row = DynamicArray<DynamicArray<value_t>>::operator[](__row);
+      for (GMath::size_t __row = 1; __row < rows; __row++) {
+        const auto &row = m_rows[__row];
 
         if (columns != row.Size()) {
           return false;
@@ -89,16 +155,19 @@ public:
   Matrix() { Reshape(MatrixShape(0, 0)); }
 
   /*
+   * Create a row matrix from a row.
+   */
+  Matrix(const MatrixRow<value_t> &_row) { AppendRow((DynamicArray<value_t>)_row); }
+
+  /*
    * Create a row matrix from an array.
    */
-  Matrix(const GMath::DynamicArray<value_t> &_arr) : DynamicArray<DynamicArray<value_t>>({_arr}) {}
+  Matrix(const DynamicArray<value_t> &_row) { AppendRow(_row); }
 
   /*
    * Create a matrix with a specific size.
    */
-  explicit Matrix(const GMath::size_t _rows, const GMath::size_t _columns) {
-    Reshape(MatrixShape(_rows, _columns));
-  };
+  explicit Matrix(const GMath::size_t _rows, const GMath::size_t _columns) { Reshape(MatrixShape(_rows, _columns)); };
 
   /*
    * Create a matrix with a specific size.
@@ -108,23 +177,20 @@ public:
   /*
    * Create a 1x1 matrix with the value.
    */
-  Matrix(const value_t &_value) : DynamicArray<DynamicArray<value_t>>({_value}) {}
+  Matrix(const value_t &_value) {
+		Reshape({1, 1});
+		m_rows[0][0] = _value;
+	}
 
   /*
    * Create a matrix from an initializer list.
    */
-  Matrix(const std::initializer_list<DynamicArray<value_t>> &_list) : DynamicArray<DynamicArray<value_t>>(_list) {}
-
-  Matrix(Matrix &&) = default;
-  Matrix(const Matrix &) = default;
-  Matrix &operator=(Matrix &&) = default;
-  Matrix &operator=(const Matrix &) = default;
-
-  ~Matrix() = default;
+  Matrix(const std::initializer_list<MatrixRow<value_t>> &_list) : m_rows(_list) {}
 
   /*
    * Checks if the matrix has only 1 column.
    */
+	[[nodiscard]]
   bool IsColumnMatrix() const {
     return Shape().Columns == 1;
   }
@@ -132,9 +198,38 @@ public:
   /*
    * Checks if the matrix has only 1 row.
    */
+	[[nodiscard]]
   bool IsRowMatrix() const {
     return Shape().Rows == 1;
   }
+
+	/*
+	 * Check if the matrix is square.
+	 */
+	[[nodiscard]]
+	bool IsSquare() const {
+		auto shape = Shape();
+		return shape.Rows == shape.Columns;
+	}
+
+	/*
+	 * Check if a Matrix has rows and columns.
+	 */
+	[[nodiscard]]
+	bool IsEmpty() const noexcept {
+    GMath::size_t columns = 0;
+    GMath::size_t rows = m_rows.Size();
+
+		if (rows < 1) return true; 
+
+		for (GMath::size_t __row = 0; __row < rows; __row++) {
+			if (m_rows[__row].Size() > 0) {
+				return false;
+			}
+		}
+
+		return true;
+	}
 
   /*
    * Creates an identity matrix with the current size.
@@ -142,16 +237,17 @@ public:
    */
   void Identity() {
     MatrixShape shape = Shape();
-    if (shape.Rows != shape.Columns) {
-      throw std::runtime_error("Matrix rows and columns count do not match.");
+
+    if (!IsSquare()) {
+      throw std::runtime_error("Not a square matrix.");
     }
 
     for (GMath::size_t __row = 0; __row < shape.Rows; __row++) {
       for (GMath::size_t __column = 0; __column < shape.Columns; __column++) {
         if (__row == __column) {
-          DynamicArray<DynamicArray<value_t>>::operator[](__row)[__column] = 1;
+					m_rows[__row][__column] = 1;
         } else {
-          DynamicArray<DynamicArray<value_t>>::operator[](__row)[__column] = 0;
+					m_rows[__row][__column] = 0;
         }
       }
     }
@@ -162,42 +258,37 @@ public:
    */
   void Zero() {
     MatrixShape shape = Shape();
+
     for (GMath::size_t __row = 0; __row < shape.Rows; __row++) {
       for (GMath::size_t __column = 0; __column < shape.Columns; __column++) {
-        DynamicArray<DynamicArray<value_t>>::operator[](__row)[__column] = 0;
+				m_rows[__row][__column] = 0;
       }
     }
   }
 
   /*
-   * Resizes the matrix and Zero().
+   * Resizes the matrix.
    */
   virtual void Reshape(const MatrixShape &_shape) {
-    DynamicArray<DynamicArray<value_t>>::Resize(_shape.Rows);
+		m_rows.Resize(_shape.Rows);
 
-    for (GMath::size_t __i = 0; __i < DynamicArray<DynamicArray<value_t>>::Size(); __i++) {
-      DynamicArray<value_t> &row = DynamicArray<DynamicArray<value_t>>::operator[](__i);
+    for (GMath::size_t __row = 0; __row < m_rows.Size(); __row++) {
+      auto &row = m_rows[__row];
       row.Resize(_shape.Columns);
     }
-
-    Zero();
   }
 
   /*
    * Round each value of the matrix with a specific rounding function.
    */
-  [[nodiscard]]
-  Matrix Round(value_t (*_roundFunc)(value_t _value) = std::round) {
-    Matrix temp = *this;
+  void Round(value_t (*_roundFunc)(value_t _value) = std::round) {
     MatrixShape shape = Shape();
+
     for (GMath::size_t __row = 0; __row < shape.Rows; __row++) {
       for (GMath::size_t __column = 0; __column < shape.Columns; __column++) {
-        value_t &value = temp[__row][__column];
-        value = _roundFunc(value);
+        m_rows[__row][__column] = _roundFunc(m_rows[__row][__column]);
       }
     }
-
-    return temp;
   }
 
   /*
@@ -205,15 +296,11 @@ public:
    */
   [[nodiscard]]
   MatrixShape Shape() const {
-    if (!IsValid()) {
-      throw std::runtime_error("Invalid matrix.");
-    }
-
     MatrixShape shape;
-    shape.Rows = DynamicArray<DynamicArray<value_t>>::Size();
+    shape.Rows = m_rows.Size();
 
     if (shape.Rows > 0) {
-      shape.Columns = DynamicArray<DynamicArray<value_t>>::operator[](0).Size();
+      shape.Columns = m_rows[0].Size();
     }
 
     return shape;
@@ -222,124 +309,98 @@ public:
   /*
    * Insert a row into the matrix at an index, moving up all of the other rows (including the old row at the index).
    */
-  [[nodiscard]]
-  Matrix InsertRow(const DynamicArray<value_t> &_row, const GMath::size_t _index) {
+  void InsertRow(const DynamicArray<value_t> &_row, const GMath::size_t _index) {
     auto shape = Shape();
+
     if (_index > shape.Rows || _index < 0) {
       throw std::runtime_error("Index out of bounds.");
     }
 
-    Matrix<value_t> output = *this;
-    output.Insert(_index, _row);
+		if (_row.Size() != shape.Columns && !IsEmpty()) {
+			throw std::runtime_error("Row not the correct size.");
+		}
 
-    if (!IsValid()) {
-      throw std::runtime_error("Invalid row inserted...");
-    }
-
-    return output;
+    m_rows.Insert(_index, _row);
   }
 
   /*
    * Remove a row from the matrix at an index, moving up all of the other rows.
    */
-  [[nodiscard]]
-  Matrix RemoveRow(const GMath::size_t _index) const {
+  void RemoveRow(const GMath::size_t _index) {
     auto shape = Shape();
+
     if (_index >= shape.Rows || _index < 0) {
       throw std::runtime_error("Index out of bounds.");
     }
 
-    Matrix<value_t> output = *this;
-    output.Erase(_index);
-
-    return output;
+		m_rows.Erase(_index);
   }
+
   /*
    * Insert a row into the matrix at the end.
    */
-  [[nodiscard]]
-  Matrix AppendRow(const DynamicArray<value_t> &_row) {
+  void AppendRow(const DynamicArray<value_t> &_row) {
     auto shape = Shape();
 
-    Matrix<value_t> output = *this;
-
-    output = output.InsertRow(_row, shape.Rows);
-    return output;
+		InsertRow(_row, shape.Rows);
   }
 
   /*
    * Insert a column into the matrix at an index, moving up all of the other columns (including the old column at the index).
    */
-  [[nodiscard]]
-  Matrix InsertColumn(const DynamicArray<value_t> &_column, const GMath::size_t _index) {
+  void InsertColumn(const DynamicArray<value_t> &_column, const GMath::size_t _index) {
     auto shape = Shape();
 
     if (_index > shape.Columns || _index < 0) {
       throw std::runtime_error("Index out of bounds.");
     }
 
-    Matrix<value_t> output = *this;
+		if (_column.Size() != shape.Rows && !IsEmpty()) {
+			throw std::runtime_error("Column not the correct size.");
+		}
 
     if (shape.Rows == 0) {
-      output.Reshape({_column.Size(), 0});
-      shape.Rows = _column.Size();
-    }
-
-    if (_column.Size() != shape.Rows) {
-      throw std::runtime_error("Inserted invalid column...");
+      Reshape({_column.Size(), 0});
+			shape = Shape();
     }
 
     for (size_t __rowIndex = 0; __rowIndex < shape.Rows; __rowIndex++) {
-      output[__rowIndex].Insert(_index, _column[__rowIndex]);
+      m_rows[__rowIndex].Insert(_index, _column[__rowIndex]);
     }
-
-    return output;
   }
 
   /*
    * Remove a column from the matrix at an index, moving up all of the other columns.
    */
-  [[nodiscard]]
-  Matrix RemoveColumn(const GMath::size_t _index) const {
+  void RemoveColumn(const GMath::size_t _index) {
     auto shape = Shape();
+
     if (_index >= shape.Columns || _index < 0) {
       throw std::runtime_error("Index out of bounds.");
     }
 
-    Matrix<value_t> output = *this;
-
-    for (size_t __rowIndex = 0; __rowIndex < shape.Rows; __rowIndex++) {
-      output[__rowIndex].Erase(_index);
-    }
-
-    return output;
+    for (size_t __rowIndex = 0; __rowIndex < shape.Rows; __rowIndex++) { m_rows[__rowIndex].Erase(_index); }
   }
 
   /*
    * Insert a column into the matrix at the end.
    */
-  [[nodiscard]]
-  Matrix AppendColumn(const DynamicArray<value_t> &_column) {
+	[[deprecated("Untested.")]]
+  void AppendColumn(const DynamicArray<value_t> &_column) {
     auto shape = Shape();
 
-    Matrix<value_t> output = *this;
-
-    output = output.InsertColumn(_column, shape.Columns);
-    return output;
+		InsertColumn(_column, shape.Columns);
   }
 
   /*
    * Create a sub-matrix within the original matrix.
    */
-  [[nodiscard]]
-  Matrix Slice(const GMath::size_t _rowIndex, 
-               const GMath::size_t _columnIndex,
-               const GMath::size_t _rowCount,
-               const GMath::size_t _columnCount) const {
+  void Slice(const GMath::size_t _rowIndex, const GMath::size_t _columnIndex, const MatrixShape &_newShape) {
     auto shape = Shape();
-    if (_rowIndex + _rowCount > shape.Rows) {
+
+    if (_rowIndex + _newShape.Rows > shape.Rows) {
       throw std::runtime_error("Slice row count outside matrix size.");
-    } else if (_columnIndex + _columnCount > shape.Columns) {
+    } else if (_columnIndex + _newShape.Columns > shape.Columns) {
       throw std::runtime_error("Slice column count outside matrix size.");
     } else if (_rowIndex < 0) {
       throw std::runtime_error("Slice row index outside matrix size.");
@@ -347,32 +408,33 @@ public:
       throw std::runtime_error("Slice column index outside matrix size.");
     }
 
-    Matrix<value_t> output(_rowCount, _columnCount);
+		auto copy = *this;
+		copy.Reshape(_newShape);
 
-    for (size_t __rIndex = 0; __rIndex < _rowCount; __rIndex++) {
-      for (size_t __cIndex = 0; __cIndex < _columnCount; __cIndex++) {
-        output[__rIndex][__cIndex] = operator[](_rowIndex + __rIndex)[_columnIndex + __cIndex];
+    for (size_t __row = 0; __row < _newShape.Rows; __row++) {
+      for (size_t __column = 0; __column < _newShape.Columns; __column++) {
+        copy[__row][__column] = m_rows[_rowIndex + __row][_columnIndex + __column];
       }
     }
 
-    return output;
+		m_rows = std::move(copy.m_rows);
   }
 
   /*
    * Swap rows and columns.
    */
-  [[nodiscard]]
-  Matrix Transpose() const {
+  void Transpose() {
     auto shape = Shape();
+
     Matrix<value_t> output(shape.Columns, shape.Rows);
 
     for (size_t __rowIndex = 0; __rowIndex < shape.Rows; __rowIndex++) {
       for (size_t __columnIndex = 0; __columnIndex < shape.Columns; __columnIndex++) {
-        output[__columnIndex][__rowIndex] = operator[](__rowIndex)[__columnIndex];
+        output[__columnIndex][__rowIndex] = m_rows[__rowIndex][__columnIndex];
       }
     }
 
-    return output;
+		m_rows = std::move(output.m_rows);
   }
 
   /*
@@ -380,56 +442,53 @@ public:
    * If T is the matrix, T^-1 would be the inverse so:
    * T^-1*T = 1
    */
-  [[nodiscard]]
-  Matrix Inverse() const {
+  void Inverse() {
     MatrixShape shape = Shape();
-    Matrix<value_t> temp = *this;
-    Matrix<value_t> output(shape);
-    output.Identity();
 
-    if (shape.Rows != shape.Columns) {
-      throw std::runtime_error("Cannot compute inverse matrix.");
-    }
+		if (shape.Rows != shape.Columns) {
+			throw std::runtime_error("Not a square matrix.");
+		}
+
+    Matrix<value_t> copy = *this;
+    Identity();
 
     value_t factor;
 
     for (GMath::size_t __row = 0; __row < shape.Rows; __row++) {
       // Get diagonal factor
-      factor = temp[__row][__row];
+      factor = copy[__row][__row];
 
       // R <- (1 / factor) * R
       // To set the diagonal value to 1
       // Will be used to multipy with the factor of each row in the column to
       // elimate the value
       for (GMath::size_t __column = 0; __column < shape.Columns; __column++) {
-        temp[__row][__column] = temp[__row][__column] / factor;
-        output[__row][__column] = output[__row][__column] / factor;
+        copy[__row][__column] = copy[__row][__column] / factor;
+        m_rows[__row][__column] = m_rows[__row][__column] / factor;
       }
 
       // Eliminate previous rows to 0
       for (GMath::size_t __prevRow = 0; __prevRow < __row; __prevRow++) {
         // Works with column linked to diagonal row index
-        factor = temp[__prevRow][__row];
+        factor = copy[__prevRow][__row];
 
         for (GMath::size_t __changeColumn = 0; __changeColumn < shape.Columns; __changeColumn++) {
-          temp[__prevRow][__changeColumn] -= temp[__row][__changeColumn] * factor;
-          output[__prevRow][__changeColumn] -= output[__row][__changeColumn] * factor;
+          copy[__prevRow][__changeColumn] -= copy[__row][__changeColumn] * factor;
+          m_rows[__prevRow][__changeColumn] -= m_rows[__row][__changeColumn] * factor;
         }
       }
 
       // Eliminate next rows to 0
       for (GMath::size_t __nextRow = __row + 1; __nextRow < shape.Rows; __nextRow++) {
         // Works with column linked to diagonal row index
-        factor = temp[__nextRow][__row];
+        factor = copy[__nextRow][__row];
 
         for (GMath::size_t __changeColumn = 0; __changeColumn < shape.Columns; __changeColumn++) {
-          temp[__nextRow][__changeColumn] -= temp[__row][__changeColumn] * factor;
-          output[__nextRow][__changeColumn] -= output[__row][__changeColumn] * factor;
+          copy[__nextRow][__changeColumn] -= copy[__row][__changeColumn] * factor;
+          m_rows[__nextRow][__changeColumn] -= m_rows[__row][__changeColumn] * factor;
         }
       }
     }
-
-    return output;
   }
 
   /*
@@ -445,18 +504,17 @@ public:
     }
 
     if (shape.Rows == 2) {
-      output = operator[](0)[0] * operator[](1)[1] - operator[](0)[1] * operator[](1)[0];
+      output = m_rows[0][0] * m_rows[1][1] - m_rows[0][1] * m_rows[1][0];
     } else {
-      Matrix<value_t> temp = *this;
-      for (size_t __columnIndex = 0; __columnIndex < shape.Columns; __columnIndex++) {
-        auto factor = temp[0][__columnIndex];
-        factor *= temp.RemoveRow(0).RemoveColumn(__columnIndex).Determinant();
+      for (size_t __rowIndex = 0; __rowIndex < shape.Rows; __rowIndex++) {
+				Matrix<value_t> temp = *this;
+				auto factor = m_rows[__rowIndex][0];
+				if (__rowIndex % 2 == 1) factor *= -1;
 
-        if (__columnIndex % 2 == 0) {
-          output += factor;
-        } else {
-          output -= factor;
-        }
+				temp.RemoveColumn(0);
+				temp.RemoveRow(__rowIndex);
+
+				output += factor * temp.Determinant();
       }
     }
 
@@ -568,7 +626,8 @@ public:
 
     DynamicArray<std::future<void>> threads {THREADING_COUNT};
     const auto batchFunc = [](const Matrix<value_t> &_matrix1, const Matrix<value_t> &_matrix2, Matrix<value_t> &_output, const MatrixShape &_matrix1Shape, const MatrixShape &_matrix2Shape, const GMath::size_t _rowStart, const GMath::size_t _rowEnd) {
-			const Matrix<value_t> transpose = _matrix2.Transpose();
+			Matrix<value_t> transpose = _matrix2;
+			transpose.Transpose();
 
       for (GMath::size_t __row = _rowStart; __row < _rowEnd; __row++) {
         for (GMath::size_t __column = 0; __column < _matrix2Shape.Columns; __column++) {
@@ -609,25 +668,22 @@ public:
    * Multiply a matrix by another's inverse.
    */
   [[nodiscard]]
-  Matrix operator/(const Matrix<value_t> &_matrix) const {
-    return *this * _matrix.Inverse();
+  Matrix operator/(Matrix<value_t> _matrix) const {
+		_matrix.Inverse();
+    return *this * _matrix;
   }
 
   /*
    * Get an array of a row in the matrix.
    */
   [[nodiscard]]
-  DynamicArray<value_t> &operator[](const GMath::size_t _n) {
-    return DynamicArray<DynamicArray<value_t>>::operator[](_n);
-  }
+  MatrixRow<value_t> &operator[](const GMath::size_t _n) { return m_rows[_n]; }
 
   /*
    * Get an array of a row in the matrix.
    */
   [[nodiscard]]
-  const DynamicArray<value_t> &operator[](const GMath::size_t _n) const {
-    return DynamicArray<DynamicArray<value_t>>::operator[](_n);
-  }
+  const MatrixRow<value_t> &operator[](const GMath::size_t _n) const { return m_rows[_n]; }
 };
 } // namespace GMath
 
@@ -644,8 +700,16 @@ std::ostream &operator<<(std::ostream &_stream, const GMath::Matrix<value_t> &_m
   }
 
   _stream << "[" << std::endl;
-  for (GMath::size_t __i = 0; __i < shape.Rows; __i++) {
-    _stream << '\t' << _matrix[__i] << std::endl;
+  for (GMath::size_t __row = 0; __row < shape.Rows; __row++) {
+		_stream << '\t' << "[ ";
+		for (GMath::size_t __column = 0; __column < shape.Columns; __column++) {
+			_stream << _matrix[__row][__column];
+
+			if (__column < shape.Columns - 1) {
+				_stream << ' ';
+			}
+		}
+		_stream << " ]\n";
   }
   _stream << ']';
 

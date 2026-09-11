@@ -8,21 +8,44 @@ int main(int argc, char *argv[]) {
   GMath::Matrix<GMath::double_t> m1;
   GMath::Matrix<GMath::double_t> m2;
 
-  m1 = {{1, 2}, {3, 4}};
+  m1 = {
+		{1, 2}, 
+		{3, 4}
+	};
 
-  m2 = {{-2, 3}, {4, -5}};
+  m2 = {
+		{-2, 3}, 
+		{4, -5}
+	};
 
   auto m3 = m1 + m2;
   auto m4 = m3 - m2;
   auto m5 = m3 * m4;
 
-  std::cout << m3;
-  std::cout << m4;
+  std::cout << m3 << std::endl;
+  std::cout << m4 << std::endl;
   std::cout << std::endl;
-  std::cout << m5;
-  std::cout << m5.Inverse();
 
-  std::cout << m5 / m4;
+	std::cout << "Transpose:" << std::endl;
+	std::cout << m1 << std::endl;
+	m1.Transpose();
+	std::cout << m1 << std::endl;
+
+	std::cout << "Inverse:" << std::endl;
+  std::cout << m5 << std::endl;
+	m5.Inverse();
+  std::cout << m5 << std::endl;
+
+	std::cout << "Round:" << std::endl;
+	m5 = m5 * 10;
+	m5.Round();
+  std::cout << m5 << std::endl;
+	std::cout << "Zero:" << std::endl;
+	m5.Zero();
+  std::cout << m5 << std::endl;
+
+	std::cout << "Matrix divide:" << std::endl;
+  std::cout << m5 / m4 << std::endl;
 
   std::cout << std::endl;
   std::cout << std::endl;
@@ -42,16 +65,19 @@ int main(int argc, char *argv[]) {
     {0, 0, 1}
   };
 
-  std::cout << 6.0 * m6;
-  std::cout << 7.0 * m7;
+	std::cout << "Factor multiply:" << std::endl;
+  std::cout << 6.0 * m6 << std::endl;
+  std::cout << 7.0 * m7 << std::endl;
 
   std::cout << std::endl;
   std::cout << "Slice: " << std::endl;
-  std::cout << m7.Slice(0, 0, 2, 2) << std::endl;
+	m7.Slice(1, 0, {2, 2});
+  std::cout << m7 << std::endl;
 
   std::cout << "Transpose: " << std::endl;
   std::cout << m3 << std::endl;
-  std::cout << m3.Transpose() << std::endl;
+	m3.Transpose();
+  std::cout << m3 << std::endl;
 
   std::cout << "Determinant: " << std::endl;
   GMath::Matrix3<GMath::double_t> determinant = {
@@ -62,9 +88,12 @@ int main(int argc, char *argv[]) {
   std::cout << determinant << std::endl;
   std::cout << determinant.Determinant() << std::endl;
 
-  std::cout << m3.InsertColumn({1, 2, 3}, 0);
+	std::cout << "Insert:" << std::endl;
+	m3.InsertColumn({1, 2}, 0);
+  std::cout << m3 << std::endl;
   std::cout << std::endl;
-  std::cout << m3.InsertRow({1, 2, 3}, 0);
+	m3.InsertRow({1, 2, 3}, 0);
+  std::cout << m3 << std::endl;
 
   return 0;
 }

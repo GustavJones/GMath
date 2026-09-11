@@ -44,6 +44,11 @@ public:
    */
   void Resize(const GMath::size_t _size) { m_values.resize(_size); };
 
+	/*
+	 * Reserve an amount of space for items in the array.
+	 */
+	void Reserve(const GMath::size_t _size) { m_values.reserve(_size); };
+
   /*
    * Reset the array to empty.
    */

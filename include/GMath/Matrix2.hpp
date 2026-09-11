@@ -17,7 +17,7 @@ private:
 
 public:
   Matrix2() : Matrix<value_t>(2, 2) {};
-  Matrix2(const std::initializer_list<DynamicArray<value_t>> &_list) : Matrix<value_t>(_list) {
+  Matrix2(const std::initializer_list<MatrixRow<value_t>> &_list) : Matrix<value_t>(_list) {
     auto shape = Matrix<value_t>::Shape();
     if (shape != MatrixShape(2, 2)) {
       throw std::runtime_error("Invalid matrix shape for Matrix2.");
