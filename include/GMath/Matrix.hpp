@@ -572,14 +572,15 @@ public:
    */
   [[nodiscard]]
   Matrix operator*(const value_t _value) const {
-    static const bool THREADING_ENABLED = false;
-    static const GMath::size_t THREADING_LIMIT = 16;
+    static const bool THREADING_ENABLED = true;
     static const GMath::size_t THREADING_COUNT = std::thread::hardware_concurrency() > 0 ? std::thread::hardware_concurrency() : 1;
+    static const GMath::size_t THREADING_LIMIT = THREADING_COUNT * 2;
 
     auto shape = Shape();
     Matrix<value_t> output(shape.Rows, shape.Columns);
 
     DynamicArray<std::future<void>> threads {THREADING_COUNT};
+
     const auto batchFunc = [](const Matrix<value_t> &_source, Matrix<value_t> &_output, const MatrixShape &_shape, const GMath::size_t _rowStart, const GMath::size_t _rowEnd, const value_t _value) {
       for (size_t __row = _rowStart; __row < _rowEnd; __row++) {
         for (GMath::size_t __column = 0; __column < _shape.Columns; __column++) {
@@ -612,7 +613,7 @@ public:
    */
   [[nodiscard]]
   Matrix operator*(const Matrix<value_t> &_matrix) const {
-    static const bool THREADING_ENABLED = false;
+    static const bool THREADING_ENABLED = true;
     static const GMath::size_t THREADING_COUNT = std::thread::hardware_concurrency() > 0 ? std::thread::hardware_concurrency() : 1;
     static const GMath::size_t THREADING_LIMIT = THREADING_COUNT * 2;
     auto thisShape = Shape();
